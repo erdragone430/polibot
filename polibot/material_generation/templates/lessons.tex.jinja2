@@ -1,0 +1,18 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[margin=1in]{geometry}
+
+\begin{document}
+
+\title{\VAR{lesson.topic | latex_escape}}
+\maketitle
+
+\BLOCK{for slide in lesson.slides}
+\section*{\VAR{slide.title | latex_escape}}
+\VAR{slide.content | latex_escape}
+
+\BLOCK{endfor}
+
+\end{document}

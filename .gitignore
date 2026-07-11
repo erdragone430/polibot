@@ -1,0 +1,85 @@
+# =========================================
+# Environment / secrets - NEVER commit these
+# =========================================
+.env
+.env.*
+!.env.example
+
+# =========================================
+# Python
+# =========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# =========================================
+# Poetry / virtual environments
+# =========================================
+.venv/
+venv/
+env/
+poetry.toml
+
+# =========================================
+# Testing / coverage
+# =========================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# =========================================
+# Course material and generated content
+# (copyrighted / large binary files - do not track in git)
+# =========================================
+data/
+polibot/data/
+*.pdf
+!docs/**/*.pdf
+
+# =========================================
+# Docker volumes (bind-mounted local data, not source)
+# =========================================
+qdrant_storage/
+postgres_data/
+rustfs_data/
+
+# =========================================
+# LaTeX build artifacts (from PDF rendering)
+# =========================================
+*.aux
+*.log
+*.toc
+*.out
+*.synctex.gz
+
+# =========================================
+# IDE / editor
+# =========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# =========================================
+# OS-specific
+# =========================================
+.DS_Store
+Thumbs.db
+
+# =========================================
+# Logs / temp files
+# =========================================
+*.log
+tmp/
+temp/

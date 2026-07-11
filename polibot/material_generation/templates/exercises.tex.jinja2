@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[margin=1in]{geometry}
+
+\begin{document}
+
+\title{\VAR{title | latex_escape}}
+\maketitle
+
+\BLOCK{for exercise in exercises}
+\section*{Exercise \VAR{loop.index}}
+\VAR{exercise.statement | latex_escape}
+
+\BLOCK{if exercise.data}
+\subsection*{Data}
+\begin{itemize}
+\BLOCK{for key, value in exercise.data.items()}
+  \item \VAR{key | latex_escape}: \VAR{value | latex_escape}
+\BLOCK{endfor}
+\end{itemize}
+\BLOCK{endif}
+
+\subsection*{Solution}
+\VAR{exercise.solution | latex_escape}
+
+\BLOCK{endfor}
+
+\end{document}

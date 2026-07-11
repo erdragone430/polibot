@@ -1,0 +1,35 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-polibot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-polibot}
+      POSTGRES_DB: ${POSTGRES_DB:-polibot}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-polibot}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-polibotsecret}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - rustfs_data:/data
+
+volumes:
+  qdrant_data:
+  postgres_data:
+  rustfs_data:
