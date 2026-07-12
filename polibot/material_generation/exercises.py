@@ -6,7 +6,6 @@ import ollama
 from pydantic import BaseModel, ValidationError
 
 from polibot.config import get_settings
-from polibot.generation.llm import _cloud_client
 from polibot.retrieval.retriever import retrieve
 
 TEMPLATE_POOL_SIZE = 3
@@ -60,8 +59,8 @@ def _fix_stray_backslashes(text: str) -> str:
 def _extract_json_object(text: str) -> str:
     """Find the first balanced {...} JSON object in free-form text.
 
-    Ollama Cloud models don't always honor the `format` schema constraint
-    and may wrap the JSON in markdown commentary.
+    The model doesn't always honor the `format` schema constraint and may
+    wrap the JSON in markdown commentary.
     """
     decoder = json.JSONDecoder()
     for i, char in enumerate(text):
@@ -79,9 +78,9 @@ def generate_exercise(topic: str, template_count: int = TEMPLATE_POOL_SIZE) -> E
     examples = "\n\n".join(f"- {node.node.get_content()}" for node in templates)
 
     settings = get_settings()
-    client = _cloud_client()
+    client = ollama.Client(host=settings.ollama_base_url)
     response = client.generate(
-        model=settings.ollama_model,
+        model=settings.ollama_lesson_model,
         prompt=EXERCISE_PROMPT.format(topic=topic, examples=examples or "(none found)"),
         format=Exercise.model_json_schema(),
     )
@@ -96,11 +95,10 @@ def generate_exercise(topic: str, template_count: int = TEMPLATE_POOL_SIZE) -> E
     except (ValueError, ValidationError):
         pass
 
-    # Ollama Cloud doesn't always honor the `format` schema constraint and may
-    # return pure markdown with no JSON at all; repair it with a local model
-    # that does honor structured output.
-    local_client = ollama.Client(host=settings.ollama_base_url)
-    repair_response = local_client.generate(
+    # The model doesn't always honor the `format` schema constraint and may
+    # return pure markdown with no JSON at all; repair it with the smaller
+    # reformulation model, which does honor structured output.
+    repair_response = client.generate(
         model=settings.ollama_reformulation_model,
         prompt=REPAIR_PROMPT.format(text=raw),
         format=Exercise.model_json_schema(),

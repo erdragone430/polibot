@@ -23,7 +23,7 @@ def test_generate_exercise_returns_validated_pydantic_model():
             return_value=[_fake_node("existing exercise")],
         ),
         patch(
-            "polibot.material_generation.exercises._cloud_client", return_value=fake_client
+            "polibot.material_generation.exercises.ollama.Client", return_value=fake_client
         ),
     ):
         exercise = generate_exercise("algebra")
@@ -36,14 +36,9 @@ def test_generate_exercise_returns_validated_pydantic_model():
 def test_generate_exercise_raises_on_malformed_llm_output():
     fake_client = MagicMock()
     fake_client.generate.return_value = {"response": "not json"}
-    fake_local_client = MagicMock()
-    fake_local_client.generate.return_value = {"response": "still not json"}
     with (
         patch("polibot.material_generation.exercises.retrieve", return_value=[]),
-        patch(
-            "polibot.material_generation.exercises._cloud_client", return_value=fake_client
-        ),
-        patch("polibot.material_generation.exercises.ollama.Client", return_value=fake_local_client),
+        patch("polibot.material_generation.exercises.ollama.Client", return_value=fake_client),
         pytest.raises(ValidationError),
     ):
         generate_exercise("algebra")

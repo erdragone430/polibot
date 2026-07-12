@@ -18,13 +18,9 @@ class Settings(BaseSettings):
     rustfs_bucket: str = "polibot-materials"
 
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "gemma4:31b"
     ollama_reformulation_model: str = "gemma4:e2b"
-    ollama_vlm_model: str = "llava"
+    ollama_vlm_model: str = "gemma4:e4b"
     ollama_lesson_model: str = "gemma4:e4b"
-
-    ollama_cloud_host: str = "https://ollama.com"
-    ollama_api_key: str = ""
 
     ollama_embedding_model: str = "bge-m3"
     sparse_model_name: str = "Qdrant/bm25"

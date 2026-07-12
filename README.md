@@ -34,12 +34,11 @@ The pipeline is split into an offline phase and an online phase.
 
 **Online phase (run for each student query):**
 
-1. **Reformulation**: the student's question is cleaned and reformulated by a lightweight model, resolving ambiguity or implicit terms before the search.
-2. **Embedding**: the reformulated question is transformed into a vector using the same model used during ingestion.
-3. **Retrieval**: a hybrid search is performed on Qdrant, combining similarity search (dense vectors) and keyword search (sparse vectors), fusing the results with Reciprocal Rank Fusion (RRF).
-4. **Reranking**: the top candidates are reordered by a dedicated reranking model (a cross-encoder), which evaluates the relevance of each chunk to the query more precisely than similarity search alone.
-5. **Augmentation**: the most relevant chunks, together with their metadata, are inserted into a structured prompt sent to the generative model, with explicit instructions to answer only based on the provided material.
-6. **Output**: the model generates the final answer, citing the sources the information comes from.
+1. **Embedding**: the student's question is transformed into a vector using the same model used during ingestion.
+2. **Retrieval**: a hybrid search is performed on Qdrant, combining similarity search (dense vectors) and keyword search (sparse vectors), fusing the results with Reciprocal Rank Fusion (RRF).
+3. **Reranking**: the top candidates are reordered by a dedicated reranking model (a cross-encoder), which evaluates the relevance of each chunk to the query more precisely than similarity search alone.
+4. **Augmentation**: the most relevant chunks, together with their metadata, are inserted into a structured prompt sent to the generative model, with explicit instructions to answer only based on the provided material.
+5. **Output**: the model generates the final answer, citing the sources the information comes from.
 
 ### 2. Material Generation Flow (Exercises and Lessons)
 
@@ -57,13 +56,11 @@ The system uses several models, each for a specific task, through Ollama:
 | Model | Role | Execution |
 |---|---|---|
 | `bge-m3` | Text embedding (chunks and queries) | Local |
-| `llava` | Image/diagram captioning | Local |
-| `gemma4:e2b` | User query reformulation; JSON-repair fallback for exercise generation | Local |
-| `gemma4:e4b` | Lesson generation (structured output) | Local |
-| `gemma4:31b` | Final answer generation for Q&A; exercise generation (structured output) | Ollama Cloud |
+| `gemma4:e4b` | Final answer generation for Q&A; image/diagram captioning; exercise and lesson generation (structured output) | Local |
+| `gemma4:e2b` | JSON-repair fallback for exercise generation, when `gemma4:e4b`'s structured output is malformed | Local |
 | `bge-reranker-v2-m3` | Reranking of retrieval results | Local |
 
-**Important technical note**: during development, it emerged that the cloud model (`gemma4:31b`) does not reliably honor structured output constraints (JSON schema), unlike local execution. Lesson generation avoids this entirely by using the local `gemma4:e4b` model. Exercise generation still calls the cloud model first (for quality), and works around its unreliable structured output with a JSON-repair step: malformed responses are patched (e.g. fixing unescaped LaTeX backslashes) and, if still invalid, repaired by the local `gemma4:e2b` model, which honors the schema reliably.
+**Note**: exercise generation includes a JSON-repair step, since `gemma4:e4b` doesn't always honor the structured output schema constraint on the first attempt: malformed responses are patched (e.g. fixing unescaped LaTeX backslashes) and, if still invalid, repaired by the smaller local `gemma4:e2b` model, which honors the schema reliably. All LLM inference (Q&A, captioning, exercise/lesson generation) now runs locally via Ollama, removing the Ollama Cloud dependency and its network-dependent latency from the Q&A path.
 
 ## Technology Stack
 
@@ -73,7 +70,7 @@ The system uses several models, each for a specific task, through Ollama:
 - **Object storage**: RustFS (S3-compatible, written in Rust)
 - **Backend**: FastAPI
 - **Test UI**: Gradio
-- **LLM models**: Ollama (local and cloud)
+- **LLM models**: Ollama (local only)
 - **PDF rendering**: Jinja2 + LaTeX (pdflatex)
 - **Dependency management**: Poetry
 
@@ -88,7 +85,6 @@ The system uses several models, each for a specific task, through Ollama:
   sudo apt install texlive-latex-base texlive-latex-recommended texlive-latex-extra
   ```
 - Ollama installed and running locally
-- An Ollama Cloud API key (free), obtainable at https://ollama.com/settings/keys
 
 ### 1. Environment configuration
 
@@ -99,7 +95,6 @@ cp .env.example .env
 ```
 
 In particular, set:
-- `OLLAMA_API_KEY`: your Ollama Cloud key
 - `POSTGRES_PASSWORD` and `RUSTFS_SECRET_KEY`: generate secure values with `openssl rand -hex 32` instead of leaving the placeholders
 
 ### 2. Start the infrastructure services
@@ -113,12 +108,9 @@ docker-compose ps   # verify Qdrant, PostgreSQL, and RustFS are "Up"
 
 ```bash
 ollama pull bge-m3
-ollama pull llava
 ollama pull gemma4:e2b
 ollama pull gemma4:e4b
 ```
-
-The `gemma4:31b` model does not need to be downloaded: it is called via Ollama Cloud using the key configured in `OLLAMA_API_KEY`.
 
 ### 4. Install Python dependencies
 
@@ -163,3 +155,4 @@ The interface will be reachable at `http://127.0.0.1:7860`, with three sections:
 - The storage bucket is currently configured with public read access, for simplicity of local testing; a real deployment should protect it with presigned URLs or authentication.
 - Captioning images in the slides is a slow operation (roughly one minute per image, on the local model used); full ingestion with captioning enabled may take a long time on courses with many images.
 - There is no end-user (student) authentication mechanism; the system is intended to be integrated in the future into the official PoliTO course channel, which will handle this aspect.
+- All inference now runs on a single local mid-size model (`gemma4:e4b`) instead of a larger cloud model; answer quality and reasoning depth may be more limited than what the larger cloud model previously provided. This is a deliberate speed/simplicity trade-off for the MVP.

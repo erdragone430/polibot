@@ -2,16 +2,6 @@ import ollama
 
 from polibot.config import get_settings
 
-
-def _cloud_client() -> ollama.Client:
-    """Client for the main generative model (gemma4:31b), served via Ollama Cloud."""
-    settings = get_settings()
-    return ollama.Client(
-        host=settings.ollama_cloud_host,
-        headers={"Authorization": f"Bearer {settings.ollama_api_key}"},
-    )
-
-
 REFORMULATION_PROMPT = (
     "Rewrite the user's question into a clear, specific search query for retrieving "
     "course slide content. Output only the rewritten query, nothing else.\n\n"
@@ -38,7 +28,7 @@ def reformulate_query(query: str) -> str:
 def generate_answer(query: str, sources: list[dict]) -> str:
     """sources: [{"text": ..., "metadata": {...}}, ...] in citation order."""
     settings = get_settings()
-    client = _cloud_client()
+    client = ollama.Client(host=settings.ollama_base_url)
 
     numbered_sources = "\n\n".join(
         f"[{i}] (course: {s['metadata'].get('course')}, topic: {s['metadata'].get('topic')}, "
@@ -47,5 +37,5 @@ def generate_answer(query: str, sources: list[dict]) -> str:
     )
     prompt = f"{ANSWER_SYSTEM_PROMPT}\n\nSources:\n{numbered_sources}\n\nQuestion: {query}"
 
-    response = client.generate(model=settings.ollama_model, prompt=prompt)
+    response = client.generate(model=settings.ollama_lesson_model, prompt=prompt)
     return response["response"]

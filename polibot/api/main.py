@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, model_validator
 
-from polibot.generation.llm import generate_answer, reformulate_query
+from polibot.generation.llm import generate_answer
 from polibot.material_generation.exercises import generate_exercise
 from polibot.material_generation.lessons import generate_lesson
 from polibot.material_generation.pdf_renderer import render_exercises_pdf, render_lesson_pdf
@@ -50,15 +50,13 @@ def health():
 
 @app.post("/query")
 def query(request: QueryRequest):
-    reformulated = reformulate_query(request.query)
-    nodes = retrieve(reformulated, top_k=request.top_k)
+    nodes = retrieve(request.query, top_k=request.top_k)
 
     sources = [{"text": n.node.get_content(), "metadata": n.node.metadata} for n in nodes]
     answer = generate_answer(request.query, sources)
 
     return {
         "answer": answer,
-        "reformulated_query": reformulated,
         "sources": [
             {"index": i, "score": n.score, **n.node.metadata} for i, n in enumerate(nodes, start=1)
         ],
