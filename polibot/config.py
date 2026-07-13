@@ -13,16 +13,16 @@ class Settings(BaseSettings):
     postgres_dsn: str = "postgresql://polibot:polibot@localhost:5432/polibot"
 
     rustfs_endpoint: str = "http://localhost:9000"
-    rustfs_access_key: str = ""
-    rustfs_secret_key: str = ""
+    rustfs_access_key: str = "polibot"
+    rustfs_secret_key: str = "polibotsecret"
     rustfs_bucket: str = "polibot-materials"
 
     ollama_base_url: str = "http://localhost:11434"
-    ollama_reformulation_model: str = "gemma4:e2b"
-    ollama_vlm_model: str = "gemma4:e4b"
-    ollama_lesson_model: str = "gemma4:e4b"
+    ollama_reformulation_model: str = "gemma2:2b"
+    ollama_vlm_model: str = "moondream"
+    ollama_lesson_model: str = "gemma2:2b"
 
-    ollama_embedding_model: str = "bge-m3"
+    ollama_embedding_model: str = "nomic-embed-text"
     sparse_model_name: str = "Qdrant/bm25"
     reranker_model_name: str = "BAAI/bge-reranker-v2-m3"
 

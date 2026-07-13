@@ -1,38 +1,50 @@
-from unittest.mock import MagicMock, patch
-
+import uuid
+from qdrant_client import models
+from polibot.config import get_settings
+from polibot.ingestion.embedding import embed_texts
+from polibot.ingestion.pipeline import ensure_collection
+from polibot.retrieval.qdrant_client import get_qdrant_client
 from polibot.retrieval.reranker import rerank
 from polibot.retrieval.retriever import retrieve
 
+def test_rerank_orders_candidates_by_score_desc_live():
+    # Will use the live BAAI/bge-reranker-v2-m3 model
+    ranked = rerank("what is a cat?", ["A car is a vehicle.", "A cat is an animal.", "A dog barks."], top_n=2)
+    assert len(ranked) == 2
+    # The second text ("A cat is an animal.") should be ranked highest (index 1)
+    assert ranked[0][0] == 1
 
-def test_rerank_orders_candidates_by_score_desc():
-    with patch("polibot.retrieval.reranker.get_reranker") as get_model:
-        get_model.return_value.compute_score.return_value = [0.1, 0.9, 0.5]
-        ranked = rerank("query", ["low", "high", "mid"], top_n=2)
-    assert ranked == [(1, 0.9), (2, 0.5)]
+def test_retrieve_fuses_then_reranks_to_top_k_live():
+    settings = get_settings()
+    client = get_qdrant_client()
+    ensure_collection()
 
+    test_course = "test_retrieval_course"
+    
+    # Clean previous runs
+    client.delete(
+        collection_name=settings.qdrant_collection,
+        points_selector=models.FilterSelector(
+            filter=models.Filter(must=[models.FieldCondition(key="course", match=models.MatchValue(value=test_course))])
+        )
+    )
 
-def test_retrieve_fuses_then_reranks_to_top_k():
-    fake_hit = MagicMock(payload={"text": "chunk text", "page": 3})
-    fake_qdrant = MagicMock()
-    fake_qdrant.query_points.return_value.points = [fake_hit]
+    texts = ["Apples are red.", "Bananas are yellow.", "The speed of light is fast."]
+    embeddings = embed_texts(texts)
+    points = []
+    for t, emb in zip(texts, embeddings):
+        points.append(models.PointStruct(
+            id=str(uuid.uuid4()),
+            vector={"dense": emb["dense"], "sparse": emb["sparse"]},
+            payload={"text": t, "course": test_course, "access_scope": "public", "owner_id": "public"}
+        ))
+    client.upsert(collection_name=settings.qdrant_collection, points=points)
 
-    with (
-        patch("polibot.retrieval.retriever.get_qdrant_client", return_value=fake_qdrant),
-        patch(
-            "polibot.retrieval.retriever.embed_texts",
-            return_value=[{"dense": [0.1], "sparse": object()}],
-        ),
-        patch("polibot.retrieval.retriever.rerank", return_value=[(0, 0.87)]),
-    ):
-        results = retrieve("query", top_k=1)
-
+    results = retrieve("fruit that is yellow", top_k=1, course_id=test_course)
     assert len(results) == 1
-    assert results[0].node.get_content() == "chunk text"
-    assert results[0].node.metadata["page"] == 3
-    assert results[0].score == 0.87
-
+    assert "Bananas are yellow." in results[0].node.get_content()
 
 if __name__ == "__main__":
-    test_rerank_orders_candidates_by_score_desc()
-    test_retrieve_fuses_then_reranks_to_top_k()
+    test_rerank_orders_candidates_by_score_desc_live()
+    test_retrieve_fuses_then_reranks_to_top_k_live()
     print("ok")

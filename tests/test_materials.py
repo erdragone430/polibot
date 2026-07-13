@@ -1,39 +1,46 @@
-from unittest.mock import MagicMock, patch
-
+import os
 from polibot.storage.materials import save_material
 from polibot.storage.models import Material
+from polibot.storage.postgres import SessionLocal, ensure_tables
+from polibot.storage.rustfs_client import get_rustfs_client
+from polibot.config import get_settings
 
+def test_save_material_uploads_then_persists_with_metadata_live():
+    # Setup live db
+    ensure_tables()
 
-def test_save_material_uploads_then_persists_with_metadata():
-    fake_session = MagicMock()
-    fake_session.__enter__.return_value = fake_session
+    # Ensure rustfs bucket exists
+    settings = get_settings()
+    s3_client = get_rustfs_client()
+    try:
+        s3_client.create_bucket(Bucket=settings.rustfs_bucket)
+    except Exception:
+        pass
 
-    with (
-        patch("polibot.storage.materials.ensure_tables"),
-        patch(
-            "polibot.storage.materials.upload_file",
-            return_value="http://rustfs/course/topic/x.pdf",
-        ) as fake_upload,
-        patch("polibot.storage.materials.SessionLocal", return_value=fake_session),
-    ):
-        material = save_material(
-            "/tmp/exercise.pdf", author="prof", course="CS101", topic="recursion"
-        )
+    # Create dummy pdf
+    dummy_pdf_path = "/tmp/dummy_test_exercise.pdf"
+    with open(dummy_pdf_path, "w") as f:
+        f.write("Dummy PDF content")
 
-    fake_upload.assert_called_once()
-    called_key = fake_upload.call_args.args[1]
-    assert called_key.startswith("CS101/recursion/")
-    assert called_key.endswith(".pdf")
+    material = save_material(
+        dummy_pdf_path, author="prof", course="CS101", topic="recursion_live"
+    )
 
     assert isinstance(material, Material)
-    assert material.url == "http://rustfs/course/topic/x.pdf"
+    assert material.url.startswith(f"{settings.rustfs_endpoint}/{settings.rustfs_bucket}/CS101/recursion_live/")
+    assert material.url.endswith(".pdf")
     assert material.author == "prof"
     assert material.course == "CS101"
-    assert material.topic == "recursion"
-    fake_session.add.assert_called_once_with(material)
-    fake_session.commit.assert_called_once()
+    assert material.topic == "recursion_live"
 
+    # Verify it was persisted in postgres
+    with SessionLocal() as session:
+        fetched = session.query(Material).filter_by(id=material.id).first()
+        assert fetched is not None
+        assert fetched.url == material.url
+
+    os.remove(dummy_pdf_path)
 
 if __name__ == "__main__":
-    test_save_material_uploads_then_persists_with_metadata()
+    test_save_material_uploads_then_persists_with_metadata_live()
     print("ok")

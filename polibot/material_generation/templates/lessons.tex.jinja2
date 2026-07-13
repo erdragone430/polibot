@@ -13,6 +13,21 @@
 \section*{\VAR{slide.title | latex_escape}}
 \VAR{slide.content | latex_escape}
 
+\BLOCK{if slide.latex_equation}
+\begin{equation*}
+\VAR{slide.latex_equation}
+\end{equation*}
+\BLOCK{endif}
+
+\BLOCK{if slide.html_widget}
+\noindent\fbox{\parbox{\textwidth}{\centering [Interactive HTML Widget Generated for Web Viewer]}}
+\BLOCK{endif}
+
+\BLOCK{if slide.accessibility_notes}
+\vspace{0.2cm}
+\noindent\textit{Accessibility note: \VAR{slide.accessibility_notes | latex_escape}}
+\BLOCK{endif}
+
 \BLOCK{endfor}
 
 \end{document}

@@ -30,12 +30,23 @@ def generate_answer(query: str, sources: list[dict]) -> str:
     settings = get_settings()
     client = ollama.Client(host=settings.ollama_base_url)
 
-    numbered_sources = "\n\n".join(
-        f"[{i}] (course: {s['metadata'].get('course')}, topic: {s['metadata'].get('topic')}, "
-        f"slide: {s['metadata'].get('slide')})\n{s['text']}"
-        for i, s in enumerate(sources, start=1)
+    # format context fragments with XML-like structure
+    context_fragments = ""
+    for i, s in enumerate(sources, start=1):
+        metadata_str = f"Source [{i}] - Course: {s['metadata'].get('course')}, Slide/Page: {s['metadata'].get('slide')}, Topic: {s['metadata'].get('topic')}"
+        context_fragments += f"\n--- {metadata_str} ---\n{s['text']}\n"
+
+    prompt = (
+        "<instruction>\n"
+        "You are an advanced, factually rigid AI teaching assistant for Politecnico di Torino.\n"
+        "Answer the user query using ONLY the verified text context fragments provided below. \n"
+        "If the context does not contain sufficient mathematical or logical grounds to answer, "
+        "state clearly that the information is unavailable in the material. Do not hallucinate.\n"
+        "Cite the source file and page/slide numbers for every claim made.\n"
+        "</instruction>\n"
+        f"<context_fragments>\n{context_fragments}</context_fragments>\n"
+        f"<query>\n{query}\n</query>"
     )
-    prompt = f"{ANSWER_SYSTEM_PROMPT}\n\nSources:\n{numbered_sources}\n\nQuestion: {query}"
 
     response = client.generate(model=settings.ollama_lesson_model, prompt=prompt)
     return response["response"]
