@@ -14,7 +14,7 @@ The primary capabilities demonstrated in this prototype are:
 ## 2. Architecture & Tech Stack Details
 The application relies on a containerized, fully local environment (`docker-compose.yml`) ensuring maximum privacy, zero cloud dependency, and rapid iterative capabilities:
 
-* **Ollama (`gemma4:e2b`, `nomic-embed-text`)**: Handles all localized embeddings, query reformulation, answer generation, and step-by-step mathematical grading.
+* **Ollama (`gemma2:2b`, `nomic-embed-text`)**: Handles all localized embeddings, query reformulation, answer generation, and step-by-step mathematical grading.
 * **Qdrant**: Manages the Vector Database, operating in a Hybrid Search mode. It fuses Dense embeddings (`nomic-embed-text`, 768-dim) with Sparse BM25 embeddings to fetch highly relevant semantic chunks. Re-ranking is performed via `BAAI/bge-reranker-v2-m3`.
 * **PostgreSQL**: Stores relational data, tracking user profiles, generated material links, and FSM analytic error logs.
 * **RustFS (S3-compatible)**: Serves as the localized blob storage for preserving physical files (PDFs, images) before they are chunked and embedded.
@@ -102,4 +102,4 @@ While the prototype establishes a completely functional pipeline, the ultimate p
 2. **Persistent Asynchronous Task Queues**: Implement `Celery` and `Redis` to manage heavy PDF ingestions in the background without blocking the LLM answering agents.
 3. **Advanced FSM Analytics Dashboard**: Aggregate the PostgreSQL error logs (e.g., tracking `boundary_check` failure rates) to allow professors to see which concepts a class is struggling with globally.
 4. **Agentic "Router" Orchestration**: Instead of explicitly calling `generate_lesson()` or `generate_exercise()`, wrap the backend in a top-level Router LLM Agent that reads a student's chat message (e.g., *"I don't understand this slide, give me a practice problem"*) and autonomously dispatches the correct sub-agent.
-5. **Scale to Heavyweight LLMs**: Migrate the Docker environment to cloud GPU nodes, upgrading `gemma4:e2b` back to `gemma2:9b` or `Llama-3-70b` for much stronger mathematical reasoning in the Exercise FSM.
+5. **Scale to Heavyweight LLMs**: Migrate the Docker environment to cloud GPU nodes, upgrading `gemma2:2b` back to `gemma2:9b` or `Llama-3-70b` for much stronger mathematical reasoning in the Exercise FSM.

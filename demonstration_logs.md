@@ -7,7 +7,7 @@ This file contains the raw, concrete outputs captured from running the prototype
 ## 1. Multi-Agent Lesson Generation (`test_agents.py`)
 
 **Input Provided to System**: Topic = "Definition of Derivative"
-**Action**: System queried Qdrant for "Definition of Derivative", passed retrieved context to `gemma4:e2b` using three distinct accessibility schemas.
+**Action**: System queried Qdrant for "Definition of Derivative", passed retrieved context to `gemma2:2b` using three distinct accessibility schemas.
 
 **Raw Output Logs**:
 ```text

@@ -35,7 +35,7 @@ def main():
     print("--- Running PDF Parsing and Vision / Image Captioning Demonstration ---")
     
     # 1. Test Vision / Captioning on raw image
-    print("\n[Testing Vision Model (gemma4:e2b) on Raw Image]")
+    print("\n[Testing Vision Model (moondream) on Raw Image]")
     img_bytes = generate_sample_image()
     caption = caption_image(img_bytes)
     print("Extracted Image Caption:")
