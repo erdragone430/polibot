@@ -12,7 +12,7 @@ from polibot.retrieval.qdrant_client import get_qdrant_client
 
 logger = logging.getLogger(__name__)
 
-DENSE_VECTOR_SIZE = 1024
+DENSE_VECTOR_SIZE = 768
 
 
 def ensure_collection() -> None:
@@ -29,13 +29,28 @@ def ensure_collection() -> None:
     )
 
 
-def ingest_pdf(path: str, course: str, topic: str | None = None, caption: bool = True) -> int:
+def ingest_pdf(
+    path: str,
+    course: str,
+    topic: str | None = None,
+    caption: bool = True,
+    owner_id: str = "public",
+    access_scope: str = "public",
+    document_type: str = "lecture_note",
+) -> int:
     """Read a slide-deck PDF, chunk (+ optionally caption) it, and upsert hybrid vectors into Qdrant."""
     topic = topic or Path(path).stem
     ensure_collection()
 
     pages = read_pdf(path)
     text_nodes = chunk_pages(pages, course=course, topic=topic)
+
+    for node in text_nodes:
+        node.metadata.update({
+            "owner_id": owner_id,
+            "access_scope": access_scope,
+            "document_type": document_type,
+        })
 
     texts = [node.get_content() for node in text_nodes]
     metadatas = [node.metadata for node in text_nodes]
@@ -56,6 +71,9 @@ def ingest_pdf(path: str, course: str, topic: str | None = None, caption: bool =
                         "page": page.number,
                         "slide": page.number,
                         "content_type": "image_caption",
+                        "owner_id": owner_id,
+                        "access_scope": access_scope,
+                        "document_type": document_type,
                     }
                 )
 
