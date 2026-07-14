@@ -70,11 +70,11 @@ The system uses several models, each for a specific task, through Ollama:
 | Model | Role | Execution |
 |---|---|---|
 | `nomic-embed-text` | Text embedding (chunks and queries) | Local |
-| `gemma2:2b` | Query reformulation; final answer generation for Q&A; exercise and lesson generation (structured output); guided-exercise step grading | Local |
+| `gemma4:e2b` | Query reformulation; final answer generation for Q&A; exercise and lesson generation (structured output); guided-exercise step grading | Local |
 | `moondream` | Image/diagram captioning (vision-language model) | Local |
 | `bge-reranker-v2-m3` | Reranking of retrieval results | Local |
 
-**Note**: exercise generation includes a JSON-repair step, since the lesson/exercise model doesn't always honor the structured output schema constraint on the first attempt: malformed responses are patched (e.g. fixing unescaped LaTeX backslashes) and, if still invalid, re-generated via the same `gemma2:2b` model used for query reformulation, which honors the schema more reliably. All LLM inference (Q&A, captioning, exercise/lesson generation, slide editing, step grading) runs locally via Ollama, with no cloud model dependency.
+**Note**: exercise generation includes a JSON-repair step, since the lesson/exercise model doesn't always honor the structured output schema constraint on the first attempt: malformed responses are patched (e.g. fixing unescaped LaTeX backslashes) and, if still invalid, re-generated via the same `gemma4:e2b` model used for query reformulation, which honors the schema more reliably. All LLM inference (Q&A, captioning, exercise/lesson generation, slide editing, step grading) runs locally via Ollama, with no cloud model dependency.
 
 ## Technology Stack
 
@@ -122,7 +122,7 @@ docker-compose ps   # verify Qdrant, PostgreSQL, and RustFS are "Up"
 
 ```bash
 ollama pull nomic-embed-text
-ollama pull gemma2:2b
+ollama pull gemma4:e2b
 ollama pull moondream
 ```
 
@@ -169,5 +169,5 @@ The interface will be reachable at `http://127.0.0.1:7860`, with three sections:
 - The storage bucket is currently configured with public read access, for simplicity of local testing; a real deployment should protect it with presigned URLs or authentication.
 - Captioning images in the slides is a slow operation (roughly one minute per image, on the local model used); full ingestion with captioning enabled may take a long time on courses with many images.
 - There is no end-user (student) authentication mechanism; `owner_id`/`student_id` are passed as plain request fields and trusted as-is, so the multi-tenant retrieval filter and the exercise FSM's error log are not protected against a client claiming another student's id. The system is intended to be integrated in the future into the official PoliTO course channel, which will handle this aspect.
-- All inference now runs on small local models (`gemma2:2b` for text, `moondream` for captioning) instead of a larger cloud model; answer quality and reasoning depth may be more limited than what a larger cloud model would provide. This is a deliberate speed/simplicity trade-off for the MVP.
+- All inference now runs on small local models (`gemma4:e2b` for text, `moondream` for captioning) instead of a larger cloud model; answer quality and reasoning depth may be more limited than what a larger cloud model would provide. This is a deliberate speed/simplicity trade-off for the MVP.
 - Guided-exercise (FSM) sessions are held in an in-memory dict (`ACTIVE_SESSIONS`), so they don't survive an API restart and don't work across multiple backend replicas; the step content itself is a single hardcoded problem, not yet generated per topic.

@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     rustfs_bucket: str = "polibot-materials"
 
     ollama_base_url: str = "http://localhost:11434"
-    ollama_reformulation_model: str = "gemma2:2b"
+    ollama_reformulation_model: str = "gemma4:e2b"
     ollama_vlm_model: str = "moondream"
-    ollama_lesson_model: str = "gemma2:2b"
+    ollama_lesson_model: str = "gemma4:e2b"
 
     ollama_embedding_model: str = "nomic-embed-text"
     sparse_model_name: str = "Qdrant/bm25"
