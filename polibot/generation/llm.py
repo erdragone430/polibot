@@ -25,8 +25,14 @@ def reformulate_query(query: str) -> str:
     return response["response"].strip() or query
 
 
-def generate_answer(query: str, sources: list[dict]) -> str:
-    """sources: [{"text": ..., "metadata": {...}}, ...] in citation order."""
+HISTORY_TURNS = 5
+
+
+def generate_answer(query: str, sources: list[dict], history: list[dict] | None = None) -> str:
+    """sources: [{"text": ..., "metadata": {...}}, ...] in citation order.
+
+    history: prior [{"role": "user"|"assistant", "content": ...}, ...] turns, oldest first.
+    """
     settings = get_settings()
     client = ollama.Client(host=settings.ollama_base_url)
 
@@ -36,6 +42,10 @@ def generate_answer(query: str, sources: list[dict]) -> str:
         metadata_str = f"Source [{i}] - Course: {s['metadata'].get('course')}, Slide/Page: {s['metadata'].get('slide')}, Topic: {s['metadata'].get('topic')}"
         context_fragments += f"\n--- {metadata_str} ---\n{s['text']}\n"
 
+    conversation_history = ""
+    for turn in (history or [])[-HISTORY_TURNS:]:
+        conversation_history += f"{turn['role']}: {turn['content']}\n"
+
     prompt = (
         "<instruction>\n"
         "You are an advanced, factually rigid AI teaching assistant for Politecnico di Torino.\n"
@@ -43,7 +53,10 @@ def generate_answer(query: str, sources: list[dict]) -> str:
         "If the context does not contain sufficient mathematical or logical grounds to answer, "
         "state clearly that the information is unavailable in the material. Do not hallucinate.\n"
         "Cite the source file and page/slide numbers for every claim made.\n"
+        "Use the conversation history only to resolve references (e.g. pronouns, follow-ups); "
+        "answer strictly from the context fragments.\n"
         "</instruction>\n"
+        f"<conversation_history>\n{conversation_history}</conversation_history>\n"
         f"<context_fragments>\n{context_fragments}</context_fragments>\n"
         f"<query>\n{query}\n</query>"
     )

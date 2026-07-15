@@ -24,6 +24,7 @@ class QueryRequest(BaseModel):
     top_k: int = 5
     owner_id: str | None = None
     course_id: str | None = None
+    history: list[dict[str, str]] | None = None
 
 
 class ExerciseRequest(BaseModel):
@@ -64,7 +65,7 @@ def query(request: QueryRequest):
     )
 
     sources = [{"text": n.node.get_content(), "metadata": n.node.metadata} for n in nodes]
-    answer = generate_answer(request.query, sources)
+    answer = generate_answer(request.query, sources, history=request.history)
 
     return {
         "answer": answer,

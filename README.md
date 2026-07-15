@@ -17,7 +17,7 @@ PoliBot is a system that, starting from a course's material (slide decks in PDF)
 3. **Generating personalized lessons** on a specific topic, with a configurable number of slides within a user-defined minimum/maximum range, optionally tailored to an accessibility profile (`standard`, `visual`, `adhd`, `dyslexia`) that adjusts content structure and can attach a self-contained interactive HTML widget per slide.
 4. **Editing a previously generated slide** through a natural-language instruction (e.g. "shorten this and add a warning about X"), re-grounded in course context retrieved for that instruction.
 5. **Running a guided, step-by-step exercise session**: the student submits an answer for each step of a fixed multi-step problem, an LLM grades it as correct/incorrect and returns a hint on failure, and incorrect attempts are logged to PostgreSQL tagged by skill type, for later analysis of common mistakes.
-6. **Storing generated lessons** as PDF files in centralized object storage (RustFS) with the material indexed in PostgreSQL, made accessible via a direct URL. Generated exercises are returned directly as a PDF and are not persisted.
+6. **Storing generated lessons and exercises** as PDF files in centralized object storage (RustFS) with the material indexed in PostgreSQL, made accessible via a time-limited presigned URL.
 
 ## Architecture
 
@@ -50,7 +50,7 @@ This flow reuses the same retrieval infrastructure as the RAG flow, adapted to a
 1. **Template Retrieval**: given a topic requested by the student, the system retrieves similar exercises or content already present in the course material, which serve as reference templates for style, notation, and difficulty.
 2. **Generation**: a dedicated prompt guides the model to generate new content (an exercise, or a lesson's slides) while preserving the structure of the retrieved examples, but with different data or topics. The output is constrained to a structured schema (Pydantic), ensuring the result is always in a predictable, usable format (statement, data, solution for exercises; title, content, LaTeX equation, optional HTML widget, and accessibility notes for each lesson slide). For lessons, generation is driven by a requested `style_profile` (`standard`, `visual`, `adhd`, `dyslexia`) that shapes content structure and whether a self-contained interactive HTML widget is attached to a slide.
 3. **PDF Rendering**: the structured content is turned into an actual PDF document, through a LaTeX template filled by a templating engine (Jinja2) and compiled with pdflatex. This approach ensures correct rendering of mathematical notation, which is common in a technical course's material.
-4. **Storage**: for lessons, the generated PDF is uploaded to S3-compatible storage (RustFS) and indexed as a `Material` row in PostgreSQL; a direct URL and the material's id are returned to the caller. Generated exercises are returned as a PDF response directly and are not uploaded anywhere.
+4. **Storage**: the generated PDF (lesson or exercise set) is uploaded to S3-compatible storage (RustFS) and indexed as a `Material` row in PostgreSQL; a presigned URL (valid for 1 hour) and the material's id are returned to the caller.
 5. **Slide editing**: an already-generated slide can be revised via a free-text instruction; the instruction plus the slide's own title/content are used to retrieve fresh course context, which is fed back to the model together with the original slide JSON to produce an updated slide matching the same schema.
 
 ### 3. Guided Exercise Session (Math Solver FSM)
@@ -166,7 +166,6 @@ The interface will be reachable at `http://127.0.0.1:7860`, with three sections:
 
 ## Known Limitations (MVP)
 
-- The storage bucket is currently configured with public read access, for simplicity of local testing; a real deployment should protect it with presigned URLs or authentication.
 - Captioning images in the slides is a slow operation (roughly one minute per image, on the local model used); full ingestion with captioning enabled may take a long time on courses with many images.
 - There is no end-user (student) authentication mechanism; `owner_id`/`student_id` are passed as plain request fields and trusted as-is, so the multi-tenant retrieval filter and the exercise FSM's error log are not protected against a client claiming another student's id. The system is intended to be integrated in the future into the official PoliTO course channel, which will handle this aspect.
 - All inference now runs on small local models (`gemma2:2b` for text, `moondream` for captioning) instead of a larger cloud model; answer quality and reasoning depth may be more limited than what a larger cloud model would provide. This is a deliberate speed/simplicity trade-off for the MVP.

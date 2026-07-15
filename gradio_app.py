@@ -16,7 +16,7 @@ API_URL = os.environ.get("POLIBOT_API_URL", "http://localhost:8000")
 
 
 def ask(question: str, history: list[dict]) -> str:
-    resp = requests.post(f"{API_URL}/query", json={"query": question})
+    resp = requests.post(f"{API_URL}/query", json={"query": question, "history": history})
     resp.raise_for_status()
     return resp.json()["answer"]
 
