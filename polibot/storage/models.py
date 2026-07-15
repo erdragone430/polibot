@@ -12,7 +12,7 @@ class Material(Base):
     __tablename__ = "materials"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    url: Mapped[str] = mapped_column(Text)
+    key: Mapped[str] = mapped_column(Text)
     author: Mapped[str] = mapped_column(String(255))
     course: Mapped[str] = mapped_column(String(255))
     topic: Mapped[str] = mapped_column(String(255))

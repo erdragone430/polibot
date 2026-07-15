@@ -10,9 +10,9 @@ def save_material(pdf_path: str, author: str, course: str, topic: str) -> Materi
     ensure_tables()
 
     key = f"{course}/{topic}/{uuid.uuid4()}{Path(pdf_path).suffix}"
-    url = upload_file(pdf_path, key)
+    upload_file(pdf_path, key)
 
-    material = Material(url=url, author=author, course=course, topic=topic)
+    material = Material(key=key, author=author, course=course, topic=topic)
     with SessionLocal() as session:
         session.add(material)
         session.commit()

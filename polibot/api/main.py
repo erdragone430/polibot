@@ -4,7 +4,6 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, model_validator
 
 from polibot.generation.llm import generate_answer, reformulate_query
@@ -15,6 +14,7 @@ from polibot.material_generation.exercise_fsm import start_exercise_session, eva
 from polibot.material_generation.pdf_renderer import render_exercises_pdf, render_lesson_pdf
 from polibot.retrieval.retriever import retrieve
 from polibot.storage.materials import save_material
+from polibot.storage.rustfs_client import get_presigned_url
 
 app = FastAPI(title="PoliBot RAG API")
 
@@ -84,7 +84,15 @@ def generate_exercise_pdf(request: ExerciseRequest):
     generated = [generate_exercise(request.topic) for _ in range(request.count)]
     pdf_path = Path(tempfile.mkdtemp()) / "exercises.pdf"
     render_exercises_pdf(request.topic, generated, pdf_path)
-    return FileResponse(pdf_path, media_type="application/pdf", filename="exercises.pdf")
+
+    material = save_material(
+        pdf_path=str(pdf_path),
+        author="PoliBot Agent System",
+        course="PoliTO Course",
+        topic=request.topic,
+    )
+
+    return {"url": get_presigned_url(material.key), "id": material.id}
 
 
 @app.post("/generate-lesson")
@@ -105,7 +113,7 @@ def generate_lesson_pdf(request: LessonRequest):
         topic=request.topic,
     )
 
-    return {"url": material.url, "key": material.url.split("/")[-1], "id": material.id}
+    return {"url": get_presigned_url(material.key), "key": material.key, "id": material.id}
 
 
 class SlideEditRequest(BaseModel):
