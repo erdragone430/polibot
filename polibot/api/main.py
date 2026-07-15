@@ -1,9 +1,13 @@
+import logging
 import re
 import tempfile
 import uuid
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, model_validator
 
 from polibot.generation.llm import generate_answer, reformulate_query
@@ -16,7 +20,22 @@ from polibot.retrieval.retriever import retrieve
 from polibot.storage.materials import save_material
 from polibot.storage.rustfs_client import get_presigned_url
 
+logger = logging.getLogger("polibot.validation_debug")
+
 app = FastAPI(title="PoliBot RAG API")
+
+
+# ponytail: temporary debug handler for the intermittent /query 422, remove once root-caused
+@app.exception_handler(RequestValidationError)
+async def log_validation_error(request: Request, exc: RequestValidationError):
+    body = await request.body()
+    logger.error(
+        "422 on %s\nraw body: %s\nerrors: %s",
+        request.url.path,
+        body.decode("utf-8", errors="replace"),
+        exc.errors(),
+    )
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 
 class QueryRequest(BaseModel):
@@ -24,7 +43,7 @@ class QueryRequest(BaseModel):
     top_k: int = 5
     owner_id: str | None = None
     course_id: str | None = None
-    history: list[dict[str, str]] | None = None
+    history: list[dict[str, Any]] | None = None
 
 
 class ExerciseRequest(BaseModel):
