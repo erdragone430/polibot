@@ -6,7 +6,7 @@ from polibot.ingestion.embedding import embed_texts
 from polibot.retrieval.qdrant_client import get_qdrant_client
 from polibot.retrieval.reranker import rerank
 
-CANDIDATE_POOL_SIZE = 25
+CANDIDATE_POOL_SIZE = 12
 
 
 def retrieve(

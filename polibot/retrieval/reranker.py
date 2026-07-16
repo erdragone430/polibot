@@ -7,7 +7,9 @@ from polibot.config import get_settings
 
 @lru_cache
 def get_reranker() -> FlagReranker:
-    return FlagReranker(get_settings().reranker_model_name, use_fp16=True)
+    # ponytail: explicit devices=, not device= (FlagReranker's actual kwarg name) —
+    # forces a loud crash if CUDA isn't available instead of a silent CPU fallback.
+    return FlagReranker(get_settings().reranker_model_name, use_fp16=True, devices="cuda:0")
 
 
 def rerank(query: str, candidates: list[str], top_n: int = 5) -> list[tuple[int, float]]:

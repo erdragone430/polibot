@@ -17,7 +17,7 @@ ollama = "^0.3.3"
 fastembed = "^0.4.1"
 FlagEmbedding = "^1.3.4"
 torch = [
-    { version = "^2.4.0", source = "pytorch-cpu", markers = "sys_platform != 'darwin'" },
+    { version = "2.5.1+cu121", source = "pytorch-cu121", markers = "sys_platform != 'darwin'" },
     { version = "^2.4.0", markers = "sys_platform == 'darwin'" },
 ]
 pymupdf = "^1.24.11"
@@ -33,8 +33,8 @@ gradio = "^5.5.0"
 requests = "^2.32.3"
 
 [[tool.poetry.source]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
 priority = "explicit"
 
 [build-system]
