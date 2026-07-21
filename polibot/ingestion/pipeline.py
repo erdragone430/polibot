@@ -25,8 +25,23 @@ def ensure_collection() -> None:
         vectors_config={
             "dense": models.VectorParams(size=DENSE_VECTOR_SIZE, distance=models.Distance.COSINE)
         },
-        sparse_vectors_config={"sparse": models.SparseVectorParams()},
+        sparse_vectors_config={
+            "sparse": models.SparseVectorParams(modifier=models.Modifier.IDF)
+        },
     )
+    # owner_id enforces the privacy filter (retriever.py), not just an optimization -
+    # is_tenant=True so Qdrant lays out storage partitioned by it.
+    client.create_payload_index(
+        collection_name=settings.qdrant_collection,
+        field_name="owner_id",
+        field_schema=models.KeywordIndexParams(type=models.KeywordIndexType.KEYWORD, is_tenant=True),
+    )
+    for field_name in ("course", "topic", "access_scope"):
+        client.create_payload_index(
+            collection_name=settings.qdrant_collection,
+            field_name=field_name,
+            field_schema=models.PayloadSchemaType.KEYWORD,
+        )
 
 
 def ingest_pdf(
